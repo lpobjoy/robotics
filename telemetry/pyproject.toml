@@ -1,0 +1,13 @@
+[project]
+name = "telemetry"
+version = "0.1.0"
+requires-python = ">=3.11"
+description = "MQTT ingestion of robot state/images into a time-series store, with images attached back to the EAM work order. See CLAUDE.md section 4.6. Not yet built (step 8)."
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/telemetry"]

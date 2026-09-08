@@ -1,0 +1,13 @@
+[project]
+name = "worldmodel"
+version = "0.1.0"
+requires-python = ">=3.11"
+description = "NetworkX graph built from EAM data, answering which robots qualify for a work order and what route to take. See CLAUDE.md section 4.2. Not yet built (step 3)."
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/worldmodel"]

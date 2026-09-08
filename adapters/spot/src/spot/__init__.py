@@ -1,0 +1,1 @@
+"""Boston Dynamics Spot adapter against bosdyn-client, tested against a fake (no public simulator exists). Status once built: BUILT_AGAINST_SDK_TESTED_WITH_FAKE. See CLAUDE.md section 4.5. Not yet built (step 12)."""

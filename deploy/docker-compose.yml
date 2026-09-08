@@ -1,0 +1,12 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
+# Services are added here as each build-sequence step (CLAUDE.md section 6)
+# lands: eam, router, mcp_server + agent, the vda5050_amr adapter, telemetry
+# ingestion, console. Nothing else runs yet.

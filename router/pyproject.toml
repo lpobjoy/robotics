@@ -1,0 +1,13 @@
+[project]
+name = "router"
+version = "0.1.0"
+requires-python = ">=3.11"
+description = "Fleet abstraction and dispatch: Mission schema, FleetAdapter protocol, capability-based robot selection, audit hooks. See CLAUDE.md section 4.4. Not yet built (step 4)."
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/router"]
