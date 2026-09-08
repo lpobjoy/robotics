@@ -3,7 +3,19 @@ name = "worldmodel"
 version = "0.1.0"
 requires-python = ">=3.11"
 description = "NetworkX graph built from EAM data, answering which robots qualify for a work order and what route to take. See CLAUDE.md section 4.2. Not yet built (step 3)."
-dependencies = []
+dependencies = [
+    "networkx>=3.3",
+    "httpx>=0.27",
+    "pydantic>=2",
+]
+
+[dependency-groups]
+dev = [
+    "eam",
+]
+
+[tool.uv.sources]
+eam = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
