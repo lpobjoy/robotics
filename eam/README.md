@@ -54,3 +54,15 @@ database is empty.
 ```bash
 uv run pytest eam
 ```
+
+## Public demo deployment
+
+Deployed to Railway (see `deploy/eam/Dockerfile`, `railway.json`, and
+[ADR-003](../docs/decisions/adr-003-railway-demo-hosting.md)) for a public
+link to use in interviews:
+
+https://robo-sim-production.up.railway.app
+
+This is separate from, not a replacement for, the docker-compose/k3d path
+in CLAUDE.md section 9's definition of done. No persistent volume --
+every deploy/restart starts from a fresh reseed.
