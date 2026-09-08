@@ -100,6 +100,23 @@ class Location(LocationCreate):
     id: int
 
 
+class LocationLinkCreate(BaseModel):
+    """A direct, walkable path between two locations -- the data behind
+    worldmodel's Location -REACHABLE_FROM-> Location edges (CLAUDE.md
+    section 4.2). Not derived from coordinates: a real site has corridors
+    and doors, not a fully-connected point cloud, so this is stated
+    explicitly rather than computed from distance alone.
+    """
+
+    from_location_id: int
+    to_location_id: int
+    distance_m: float
+
+
+class LocationLink(LocationLinkCreate):
+    id: int
+
+
 class AssetCreate(BaseModel):
     name: str
     asset_type: str

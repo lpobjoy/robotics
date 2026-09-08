@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from eam.app import create_app
 from eam.models import WorkOrderStatus
 from eam.seed import seed_if_empty
@@ -12,6 +13,45 @@ def test_seed_counts() -> None:
     assert len(db.list_assets()) == 20
     assert len(db.list_robots()) == 3
     assert len(db.list_work_orders()) == 5
+    # 7 walkable links, seeded in both directions.
+    assert len(db.list_location_links()) == 14
+
+
+def test_location_links_connect_every_location() -> None:
+    """worldmodel (step 3) needs every location reachable from every other
+    one via location_links, or its shortest-path routing has no answer for
+    some robot/work-order pairs."""
+    app = create_app(db_path=":memory:", seed=True)
+    db = app.state.db
+
+    locations = {loc.id for loc in db.list_locations()}
+    adjacency: dict[int, set[int]] = {loc_id: set() for loc_id in locations}
+    for link in db.list_location_links():
+        adjacency[link.from_location_id].add(link.to_location_id)
+
+    start = next(iter(locations))
+    seen = {start}
+    frontier = [start]
+    while frontier:
+        current = frontier.pop()
+        for neighbor in adjacency[current]:
+            if neighbor not in seen:
+                seen.add(neighbor)
+                frontier.append(neighbor)
+
+    assert seen == locations
+
+
+def test_location_link_distance_matches_coordinates() -> None:
+    app = create_app(db_path=":memory:", seed=True)
+    db = app.state.db
+    locations_by_id = {loc.id: loc for loc in db.list_locations()}
+
+    for link in db.list_location_links():
+        from_loc = locations_by_id[link.from_location_id]
+        to_loc = locations_by_id[link.to_location_id]
+        expected = ((from_loc.x - to_loc.x) ** 2 + (from_loc.y - to_loc.y) ** 2) ** 0.5
+        assert link.distance_m == pytest.approx(expected)
 
 
 def test_seed_has_a_draft_and_a_completed_work_order() -> None:

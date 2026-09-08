@@ -9,10 +9,13 @@ local frame), so real-world coordinates would be a fiction.
 
 from __future__ import annotations
 
+import math
+
 from eam.db import Database
 from eam.models import (
     AssetCreate,
     LocationCreate,
+    LocationLinkCreate,
     MissionCapability,
     RobotCreate,
     RobotEcosystem,
@@ -28,6 +31,23 @@ LOCATIONS: list[tuple[str, str, float, float]] = [
     ("Outfall", "Treated discharge point", 120.0, 30.0),
     ("Control Room", "SCADA and electrical room", 10.0, -20.0),
     ("Perimeter", "Site fence line", 0.0, 60.0),
+]
+
+# Direct, walkable paths between locations -- worldmodel's
+# Location -REACHABLE_FROM-> Location edges (CLAUDE.md section 4.2).
+# Not every pair of locations is linked: a real site has corridors and
+# doors, not a fully-connected point cloud. Distance is computed from the
+# coordinates above rather than stated separately, so the two can't drift
+# apart. Pump House is the hub; Valve Yard <-> Control Room gives one
+# alternate route instead of a bare spanning tree.
+LOCATION_LINKS: list[tuple[str, str]] = [
+    ("Pump House", "Control Room"),
+    ("Pump House", "Valve Yard"),
+    ("Pump House", "Intake"),
+    ("Pump House", "Perimeter"),
+    ("Valve Yard", "Tank Farm"),
+    ("Valve Yard", "Control Room"),
+    ("Tank Farm", "Outfall"),
 ]
 
 # (name, asset_type, location name, x, y, criticality) -- 20 assets.
@@ -130,9 +150,31 @@ def seed_if_empty(db: Database) -> None:
         return
 
     location_ids: dict[str, int] = {}
+    location_coords: dict[str, tuple[float, float]] = {}
     for name, description, x, y in LOCATIONS:
         location = db.create_location(LocationCreate(name=name, description=description, x=x, y=y))
         location_ids[name] = location.id
+        location_coords[name] = (x, y)
+
+    for from_name, to_name in LOCATION_LINKS:
+        from_x, from_y = location_coords[from_name]
+        to_x, to_y = location_coords[to_name]
+        distance_m = math.dist((from_x, from_y), (to_x, to_y))
+        # Paths are walkable both ways.
+        db.create_location_link(
+            LocationLinkCreate(
+                from_location_id=location_ids[from_name],
+                to_location_id=location_ids[to_name],
+                distance_m=distance_m,
+            )
+        )
+        db.create_location_link(
+            LocationLinkCreate(
+                from_location_id=location_ids[to_name],
+                to_location_id=location_ids[from_name],
+                distance_m=distance_m,
+            )
+        )
 
     asset_ids: dict[str, int] = {}
     for name, asset_type, location_name, x, y, criticality in ASSETS:

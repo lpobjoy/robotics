@@ -18,6 +18,8 @@ from eam.models import (
     Attachment,
     Location,
     LocationCreate,
+    LocationLink,
+    LocationLinkCreate,
     MissionCapability,
     Robot,
     RobotCreate,
@@ -36,6 +38,13 @@ CREATE TABLE IF NOT EXISTS locations (
     description TEXT NOT NULL DEFAULT '',
     x REAL NOT NULL,
     y REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS location_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_location_id INTEGER NOT NULL REFERENCES locations(id),
+    to_location_id INTEGER NOT NULL REFERENCES locations(id),
+    distance_m REAL NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS assets (
@@ -122,6 +131,24 @@ class Database:
             "SELECT * FROM locations WHERE id = ?", (location_id,)
         ).fetchone()
         return _location_from_row(row) if row else None
+
+    # --- location links ---
+
+    def create_location_link(self, link: LocationLinkCreate) -> LocationLink:
+        cursor = self._conn.execute(
+            "INSERT INTO location_links (from_location_id, to_location_id, distance_m) "
+            "VALUES (?, ?, ?)",
+            (link.from_location_id, link.to_location_id, link.distance_m),
+        )
+        self._conn.commit()
+        row = self._conn.execute(
+            "SELECT * FROM location_links WHERE id = ?", (cursor.lastrowid,)
+        ).fetchone()
+        return _location_link_from_row(row)
+
+    def list_location_links(self) -> list[LocationLink]:
+        rows = self._conn.execute("SELECT * FROM location_links ORDER BY id").fetchall()
+        return [_location_link_from_row(row) for row in rows]
 
     # --- assets ---
 
@@ -287,6 +314,15 @@ def _location_from_row(row: sqlite3.Row) -> Location:
         description=row["description"],
         x=row["x"],
         y=row["y"],
+    )
+
+
+def _location_link_from_row(row: sqlite3.Row) -> LocationLink:
+    return LocationLink(
+        id=row["id"],
+        from_location_id=row["from_location_id"],
+        to_location_id=row["to_location_id"],
+        distance_m=row["distance_m"],
     )
 
 

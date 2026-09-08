@@ -12,6 +12,7 @@ from eam.models import (
     Asset,
     Attachment,
     Location,
+    LocationLink,
     Robot,
     WebhookEventType,
     WebhookSubscription,
@@ -38,6 +39,11 @@ def get_location(location_id: int, db: DbDep) -> Location:
     if location is None:
         raise HTTPException(status_code=404, detail="location not found")
     return location
+
+
+@router.get("/location-links", response_model=list[LocationLink])
+def list_location_links(db: DbDep) -> list[LocationLink]:
+    return db.list_location_links()
 
 
 @router.get("/assets", response_model=list[Asset])

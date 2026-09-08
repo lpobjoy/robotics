@@ -17,6 +17,14 @@ def test_list_locations(client: TestClient) -> None:
     assert len(response.json()) == 7
 
 
+def test_list_location_links(client: TestClient) -> None:
+    response = client.get("/api/location-links")
+    assert response.status_code == 200
+    links = response.json()
+    assert len(links) == 14
+    assert all(link["distance_m"] > 0 for link in links)
+
+
 def test_list_assets(client: TestClient) -> None:
     response = client.get("/api/assets")
     assert response.status_code == 200
