@@ -18,4 +18,4 @@ RUN uv sync --frozen --no-dev --package eam
 ENV PORT=8000
 EXPOSE 8000
 
-CMD ["sh", "-c", "uv run --no-dev --package eam uvicorn eam.app:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "uv run --no-dev --package eam uvicorn eam.app:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips='*'"]
