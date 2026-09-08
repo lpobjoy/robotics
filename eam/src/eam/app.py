@@ -21,6 +21,18 @@ def create_app(db_path: str | Path = ":memory:", *, seed: bool = True) -> FastAP
         seed_if_empty(app.state.db)
     app.include_router(rest_router)
     app.include_router(odata_router)
+
+    @app.get("/")
+    def root() -> dict[str, str]:
+        return {
+            "service": "eam (mock)",
+            "note": "Mock EAM business system -- see CLAUDE.md section 4.1. Not a real product.",
+            "docs": "/docs",
+            "rest_example": "/api/work-orders",
+            "odata_metadata": "/odata/v4/$metadata",
+            "odata_example": "/odata/v4/WorkOrders",
+        }
+
     return app
 
 

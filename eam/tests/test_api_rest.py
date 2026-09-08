@@ -3,6 +3,14 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 
+def test_root_is_not_a_dead_end(client: TestClient) -> None:
+    response = client.get("/")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["odata_metadata"] == "/odata/v4/$metadata"
+    assert body["rest_example"] == "/api/work-orders"
+
+
 def test_list_locations(client: TestClient) -> None:
     response = client.get("/api/locations")
     assert response.status_code == 200
