@@ -36,10 +36,3 @@ select = ["E", "F", "I", "UP"]
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
-
-[tool.pytest.ini_options]
-# Every workspace member has its own tests/ dir with no __init__.py, and
-# several will end up with same-named test files (test_api.py, and so on).
-# importlib mode keys each test module by its full path instead of by
-# basename, so that doesn't collide.
-addopts = "--import-mode=importlib"
