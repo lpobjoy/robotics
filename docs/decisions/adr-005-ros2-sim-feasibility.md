@@ -56,6 +56,65 @@ Tested directly, in that container, on this laptop:
   (yes, with two identified fixes), not a claim that the full loop has
   been proven end to end.
 
+## Follow-up: pushing past the original stopping point
+
+After all 15 build-sequence steps landed, a later session returned to
+close the "not yet verified" gap above, now with no step-budget
+pressure forcing an early stop. Real progress, and a narrower, more
+specific remaining gap:
+
+Two more real bugs found and fixed, the same way the two above were --
+by actually running it and reading what broke, not by reasoning about
+what should work:
+
+- `ros2_bridge/launch/bridge.launch.py` passed `headless: "true"` to
+  the vendored `turtlebot4_gz.launch.py`, expecting it to route around
+  the GUI-crash bug this ADR already fixed once via
+  `headless_sim.launch.py`. It didn't: `turtlebot4_gz.launch.py` never
+  declares or reads a `headless` argument at all, so it always calls
+  the same broken `sim.launch.py` regardless -- confirmed directly by
+  running it and getting the exact same `qt.qpa.xcb` crash again.
+  Fixed by having `bridge.launch.py` include `headless_sim.launch.py`
+  and `turtlebot4_spawn.launch.py` directly, bypassing
+  `turtlebot4_gz.launch.py` entirely.
+- Once a robot is actually spawned into the headless world,
+  `--headless-rendering` alone isn't sufficient: Gazebo's *sensor*
+  render thread (needed for the robot's camera) still opens a real
+  GLX/X11 context to initialize, and aborts the same way the original
+  GUI crash did -- confirmed directly, and only reproducible once a
+  camera-equipped robot is actually present, which is why it wasn't
+  seen during this ADR's original headless-boot-only check. Fixed with
+  `xvfb-run` (a virtual, software-rendered X display) wrapping the
+  whole launch -- see `deploy/vda5050_amr/Dockerfile`.
+
+With both fixed: Nav2's **full lifecycle activates**
+(`lifecycle_manager_navigation: Managed nodes are active`), and it
+accepts and actively pursues a real `NavigateToPose` goal sent by
+`vda5050_bridge/bridge_node.py` in response to a real VDA 5050 order
+published over MQTT -- proving the bridge node itself works, end to
+end, up to that point.
+
+What's still not proven, and now a much more specific finding than
+before: the robot actually *reaching* the commanded goal. The
+`controller_server` gets stuck re-planning a fresh path roughly once a
+second without visible net progress, alongside repeated `Control loop
+missed its desired rate of 20.0000 Hz. Current loop rate is inf Hz.`
+warnings. An "inf Hz" reading means the controller measured zero
+elapsed time between loop iterations -- the signature of `/clock`
+(simulation time) not advancing smoothly enough under this level of
+x86_64 emulation for Nav2's real-time control-loop assumptions to hold.
+This reads as a real-time-factor problem with the emulation itself,
+not a configuration mistake in this package's launch files or
+parameters -- and, unlike the previous two bugs, not one a launch-file
+fix is likely to resolve. Closing it would most plausibly need either
+faster hardware (a native x86_64 or arm64 host, avoiding emulation
+entirely) or a deliberately slowed-down/relaxed Nav2 control-loop
+configuration tolerant of an inconsistent simulation clock -- both
+outside what this investigation's remaining time budget covered.
+
+See `adapters/vda5050_amr/ros2_bridge/README.md`'s Status section for
+the full, current, precise account of what's proven and what isn't.
+
 ## Consequences
 
 - CI (`docs/standards.md`/`.github/workflows/ci.yml`) will need a

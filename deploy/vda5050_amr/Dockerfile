@@ -13,8 +13,17 @@ RUN apt-get update -qq && \
         ros-jazzy-turtlebot4-gz-bringup \
         ros-jazzy-turtlebot4-navigation \
         ros-jazzy-turtlebot4-desktop \
-        python3-pip && \
+        python3-pip \
+        xvfb && \
     rm -rf /var/lib/apt/lists/*
+
+# `--headless-rendering` alone is not enough once a robot with a camera
+# sensor is actually spawned: Gazebo's sensor render thread still opens
+# a real GLX/X11 context to initialize (confirmed directly -- it
+# aborts with "Couldn't open X display" the moment a camera-equipped
+# robot loads, even though the main Gazebo GUI client itself never
+# launches). `xvfb-run` gives it a real (if virtual, software-rendered)
+# X display to attach to. See ros2_bridge/README.md.
 
 RUN pip3 install --break-system-packages paho-mqtt>=2.0
 
