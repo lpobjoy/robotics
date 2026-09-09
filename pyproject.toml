@@ -15,7 +15,6 @@ members = [
     "audit",
     "identity",
     "adapters/vda5050_amr",
-    "adapters/unitree",
     "adapters/spot",
 ]
 

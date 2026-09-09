@@ -29,6 +29,46 @@ jobs:
         run: uv run mypy --strict router agent worldmodel
 
       - name: Test
+        run: uv run pytest --ignore=adapters/unitree
+
+  # adapters/unitree is its own standalone uv project (ADR-006), not part
+  # of "Sync workspace" above -- its unitree_sdk2py dependency needs a
+  # native CycloneDDS build the rest of the repo has no reason to carry.
+  unitree-adapter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install Python
+        run: uv python install 3.11
+
+      - name: Build CycloneDDS 0.10.x from source
+        run: |
+          git clone --depth 1 -b releases/0.10.x https://github.com/eclipse-cyclonedds/cyclonedds adapters/unitree/.cyclonedds-src
+          cmake -S adapters/unitree/.cyclonedds-src -B adapters/unitree/.cyclonedds-src/build \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/adapters/unitree/.cyclonedds-install \
+            -DBUILD_EXAMPLES=OFF -DENABLE_SSL=OFF -DENABLE_SECURITY=OFF
+          cmake --build adapters/unitree/.cyclonedds-src/build --target install -j 4
+
+      - name: Sync adapters/unitree
+        working-directory: adapters/unitree
+        env:
+          CYCLONEDDS_HOME: ${{ github.workspace }}/adapters/unitree/.cyclonedds-install
+        run: uv sync
+
+      - name: Lint (ruff)
+        working-directory: adapters/unitree
+        run: uv run ruff check .
+
+      - name: Test
+        working-directory: adapters/unitree
+        env:
+          CYCLONEDDS_HOME: ${{ github.workspace }}/adapters/unitree/.cyclonedds-install
         run: uv run pytest
 
   # Added at build-sequence step 7 (CLAUDE.md section 6): a headless Gazebo

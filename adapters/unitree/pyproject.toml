@@ -2,8 +2,24 @@
 name = "unitree"
 version = "0.1.0"
 requires-python = ">=3.11"
-description = "Unitree Go2 adapter, split in two: SDK-based high-level control (BUILT_AGAINST_SDK_TESTED_WITH_FAKE) and unitree_mujoco sim2sim locomotion (RUN_IN_SIM). Own container — never shares an image with the ROS 2 adapter. See CLAUDE.md section 4.5. Not yet built (step 11)."
-dependencies = []
+description = "Unitree Go2 adapter, split in two: SDK-based high-level control (BUILT_AGAINST_SDK_TESTED_WITH_FAKE, built at step 11) and unitree_mujoco sim2sim locomotion (RUN_IN_SIM). Own container — never shares an image with the ROS 2 adapter. See CLAUDE.md section 4.5 and ADR-006 for why this is its own standalone uv project, not a member of the root workspace."
+dependencies = [
+    "router",
+    "unitree-sdk2py",
+    "cyclonedds==0.10.2",
+    "numpy",
+    "opencv-python",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[tool.uv.sources]
+router = { path = "../../router" }
+unitree-sdk2py = { git = "https://github.com/unitreerobotics/unitree_sdk2_python.git" }
 
 [build-system]
 requires = ["hatchling"]

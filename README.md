@@ -38,8 +38,16 @@ Requires [`uv`](https://docs.astral.sh/uv/) and Docker.
 
 ```bash
 uv sync --all-packages --all-groups
-uv run pytest
+uv run pytest --ignore=adapters/unitree
 ```
+
+`adapters/unitree` is its own standalone `uv` project, not a member of this
+workspace: its SDK dependency (`unitree_sdk2py`) needs a native CycloneDDS
+build that the rest of the repo has no reason to carry, and CLAUDE.md
+section 4.5 flags CycloneDDS as something that must never share an
+environment with the ROS 2 adapter's own DDS stack. See
+`adapters/unitree/README.md` for how to set it up and run its tests on
+their own.
 
 ```bash
 docker compose -f deploy/docker-compose.yml up

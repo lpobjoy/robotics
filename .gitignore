@@ -26,3 +26,8 @@ console/dist/
 .DS_Store
 .vscode/
 .idea/
+
+# adapters/unitree: CycloneDDS built from source locally (ADR-006) --
+# not vendored; its own uv.lock is tracked, same as the root workspace's.
+adapters/unitree/.cyclonedds-src/
+adapters/unitree/.cyclonedds-install/
