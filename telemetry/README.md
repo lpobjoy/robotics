@@ -48,3 +48,16 @@ Needs Docker (spins up a real, ephemeral Mosquitto broker, same as
 ```bash
 uv run pytest telemetry
 ```
+
+These tests hit a real broker with a real subscribing client and a
+separate real publishing client -- and were intermittently flaky both
+locally and in CI, always a different test, always a `_wait_until`
+timeout. Root cause: `paho-mqtt`'s `subscribe()` returns once the
+SUBSCRIBE packet is queued, not once the broker has registered the
+filter, and `IngestionService.__init__` subscribes right before the
+test's publisher client sends its first message -- with no guaranteed
+ordering between the two, a fast publish could beat the broker's own
+processing of the subscription and be delivered to nobody. Fixed in
+`ingestion.py` (`_subscribe_and_wait`, same fix as
+`adapters/vda5050_amr`): block on the SUBACK via `on_subscribe` before
+`IngestionService.__init__` returns.
