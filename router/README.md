@@ -2,7 +2,8 @@
 
 Fleet abstraction and dispatch. See CLAUDE.md section 4.4. Built at
 build-sequence step 4; identity-checked adapter registration added at
-step 5.
+step 5; `pause`/`resume`/`abort` audit events gained `work_order_id`
+correlation at step 10.
 
 ## What's here
 
@@ -17,11 +18,12 @@ step 5.
   then availability, then shortest-path distance via
   `worldmodel.query.shortest_distance`). Every dispatch, pause, resume,
   and abort writes an `audit.AuditEvent` -- including *why* a robot was
-  chosen -- before the adapter is ever called. If constructed with an
-  `identity.IdentityService`, `register_adapter` requires a valid
-  client-credentials token matching the adapter's own `robot_id`
-  (CLAUDE.md section 4.7); without one, registration behaves exactly as
-  it did in step 4.
+  chosen, and (since step 10) which work order the mission belongs to,
+  not just the mission id -- before the adapter is ever called. If
+  constructed with an `identity.IdentityService`, `register_adapter`
+  requires a valid client-credentials token matching the adapter's own
+  `robot_id` (CLAUDE.md section 4.7); without one, registration behaves
+  exactly as it did in step 4.
 - `fake_adapter.py` -- `FakeAdapter`, an in-memory `FleetAdapter` for
   testing. Not one of the labelled statuses in `adapters/`; it's router's
   own test double.

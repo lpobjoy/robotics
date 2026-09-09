@@ -60,6 +60,7 @@ class Router:
         self._adapters_by_robot_id: dict[str, FleetAdapter] = {}
         self._handles_by_mission_id: dict[str, tuple[MissionHandle, FleetAdapter]] = {}
         self._mission_id_by_work_order_id: dict[int, str] = {}
+        self._work_order_id_by_mission_id: dict[str, int] = {}
 
     def register_adapter(self, adapter: FleetAdapter, *, token: str | None = None) -> None:
         descriptor = adapter.capabilities()
@@ -163,6 +164,7 @@ class Router:
         handle = chosen_adapter.dispatch(mission)
         self._handles_by_mission_id[mission.id] = (handle, chosen_adapter)
         self._mission_id_by_work_order_id[mission.work_order_id] = mission.id
+        self._work_order_id_by_mission_id[mission.id] = mission.work_order_id
         return handle
 
     def status(self, mission_id: str) -> MissionStatusReport:
@@ -178,21 +180,36 @@ class Router:
     def pause(self, mission_id: str) -> None:
         handle, adapter = self._get(mission_id)
         self._audit_sink.record(
-            AuditEvent(actor="router", action="mission.pause", mission_id=mission_id)
+            AuditEvent(
+                actor="router",
+                action="mission.pause",
+                mission_id=mission_id,
+                work_order_id=self._work_order_id_by_mission_id.get(mission_id),
+            )
         )
         adapter.pause(handle)
 
     def resume(self, mission_id: str) -> None:
         handle, adapter = self._get(mission_id)
         self._audit_sink.record(
-            AuditEvent(actor="router", action="mission.resume", mission_id=mission_id)
+            AuditEvent(
+                actor="router",
+                action="mission.resume",
+                mission_id=mission_id,
+                work_order_id=self._work_order_id_by_mission_id.get(mission_id),
+            )
         )
         adapter.resume(handle)
 
     def abort(self, mission_id: str) -> None:
         handle, adapter = self._get(mission_id)
         self._audit_sink.record(
-            AuditEvent(actor="router", action="mission.abort", mission_id=mission_id)
+            AuditEvent(
+                actor="router",
+                action="mission.abort",
+                mission_id=mission_id,
+                work_order_id=self._work_order_id_by_mission_id.get(mission_id),
+            )
         )
         adapter.abort(handle)
 

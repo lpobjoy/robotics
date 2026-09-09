@@ -43,7 +43,29 @@ will. It only ever talks MQTT.
   publishes a real `Order`; `pause`/`resume`/`abort` publish
   `InstantActions` (`startPause`/`stopPause`/`cancelOrder`); `status` and
   `capabilities` are derived from the latest `state`/`connection`
-  messages received.
+  messages received. Since step 10: the adapter also tracks when the
+  last message of *any* kind arrived, independent of that message's
+  content -- if the MQTT link itself drops, no further messages arrive
+  at all, so staleness has to be measured by elapsed time, not inferred
+  from a `connection` payload that will never come. Past
+  `connectivity_timeout_s` (default 15s, configurable per adapter
+  instance) with nothing heard, `capabilities()` reports the robot
+  `OFFLINE` and `status()` reports any in-flight mission `FAILED` with a
+  `connectivity lost` detail message -- CLAUDE.md section 4.7's
+  "connectivity loss beyond a threshold" escalation trigger.
+
+## Degraded mode (CLAUDE.md section 6, step 10)
+
+`tests/test_degraded_mode.py` proves the full scenario end to end: cut
+the MQTT link mid-mission, the mission fails via the connectivity-loss
+detection above, that failure is escalated to a human through the same
+`MissionTools` surface the agent uses, and a human then resumes or
+aborts it -- with the audit trail correlating every step back to the
+work order. Unlike `tests/test_adapter.py`, this test wires up a real
+EAM, a real `Router`, and the real `Vda5050Adapter` together (not just
+the adapter against `FakeRobot` in isolation), so the failure that
+triggers escalation is a genuine dropped connection, not a status forced
+by hand.
 
 ## Not covered
 
