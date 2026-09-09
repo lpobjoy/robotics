@@ -3,7 +3,20 @@ name = "telemetry"
 version = "0.1.0"
 requires-python = ">=3.11"
 description = "MQTT ingestion of robot state/images into a time-series store, with images attached back to the EAM work order. See CLAUDE.md section 4.6. Not yet built (step 8)."
-dependencies = []
+dependencies = [
+    "pydantic>=2",
+    "paho-mqtt>=2.0",
+    "httpx>=0.27",
+]
+
+[dependency-groups]
+dev = [
+    "eam",
+    "uvicorn>=0.30",
+]
+
+[tool.uv.sources]
+eam = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
