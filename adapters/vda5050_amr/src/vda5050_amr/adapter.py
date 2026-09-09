@@ -61,6 +61,7 @@ class Vda5050Adapter:
         location_lookup: LocationLookup,
         mqtt_client: mqtt.Client,
         manufacturer: str = "robot-router-demo",
+        connectivity_timeout_s: float = 15.0,
     ) -> None:
         self._robot_id = robot_id
         self._name = name
@@ -73,6 +74,15 @@ class Vda5050Adapter:
         self._latest_state: State | None = None
         self._latest_connection: Connection | None = None
         self._header_id = 0
+
+        # CLAUDE.md section 4.7: "connectivity loss beyond a threshold" is
+        # an escalation trigger. Tracked here, not just inferred from the
+        # last `connection` message's *content* -- if MQTT itself drops,
+        # no further messages of any kind arrive at all, so staleness has
+        # to be measured by time, not by the last payload we happened to
+        # receive before the link went down.
+        self._connectivity_timeout_s = connectivity_timeout_s
+        self._last_message_at: float | None = None
 
         self._client = mqtt_client
         self._client.on_message = self._on_message
@@ -90,11 +100,17 @@ class Vda5050Adapter:
         )
 
     def _on_message(self, client: mqtt.Client, userdata: object, message: mqtt.MQTTMessage) -> None:
+        self._last_message_at = time.time()
         payload = json.loads(message.payload.decode("utf-8"))
         if message.topic == self._topics.state:
             self._latest_state = State.model_validate(payload)
         elif message.topic == self._topics.connection:
             self._latest_connection = Connection.model_validate(payload)
+
+    def _connectivity_lost(self) -> bool:
+        if self._last_message_at is None:
+            return True
+        return (time.time() - self._last_message_at) > self._connectivity_timeout_s
 
     # --- FleetAdapter protocol ---
 
@@ -109,6 +125,8 @@ class Vda5050Adapter:
         )
 
     def _availability(self) -> RobotAvailability:
+        if self._connectivity_lost():
+            return RobotAvailability.OFFLINE
         if (
             self._latest_connection is None
             or self._latest_connection.connection_state != ConnectionState.ONLINE
@@ -175,6 +193,16 @@ class Vda5050Adapter:
                 mission_id=handle.mission_id, status=MissionStatus.DISPATCHED
             )
 
+        # Checked before connectivity: a mission that already finished
+        # before the link dropped is done, not failed -- no further
+        # updates are expected or needed at that point.
+        if state.action_states and all(
+            a.action_status == ActionStatus.FINISHED for a in state.action_states
+        ):
+            return MissionStatusReport(
+                mission_id=handle.mission_id, status=MissionStatus.COMPLETED
+            )
+
         if any(error.error_level.value == "FATAL" for error in state.errors):
             return MissionStatusReport(
                 mission_id=handle.mission_id,
@@ -182,11 +210,14 @@ class Vda5050Adapter:
                 detail="; ".join(e.error_description for e in state.errors),
             )
 
-        if state.action_states and all(
-            a.action_status == ActionStatus.FINISHED for a in state.action_states
-        ):
+        if self._connectivity_lost():
             return MissionStatusReport(
-                mission_id=handle.mission_id, status=MissionStatus.COMPLETED
+                mission_id=handle.mission_id,
+                status=MissionStatus.FAILED,
+                detail=(
+                    f"connectivity lost: no telemetry received for over "
+                    f"{self._connectivity_timeout_s:.0f}s"
+                ),
             )
 
         if state.driving or any(
