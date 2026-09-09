@@ -86,8 +86,18 @@ Needs Docker (spins up a real, ephemeral Mosquitto broker):
 uv run pytest adapters/vda5050_amr
 ```
 
-These are real MQTT round trips over a real broker, not mocked -- under
-heavy system load (a lot of other things competing for CPU) a wait can
-occasionally exceed its timeout. Re-running in isolation has always
-passed cleanly when this has been seen; it hasn't reproduced as an
-actual logic bug. Disclosed here rather than silently retried away.
+These are real MQTT round trips over a real broker, not mocked. This
+surfaced as intermittent `_wait_until` timeouts, a different test each
+time, both locally and in CI on GitHub-hosted runners. It was a real
+race, not just slow hardware: `paho-mqtt`'s `subscribe()` returns as
+soon as the SUBSCRIBE packet is queued on the wire, not once the broker
+has actually registered the filter. Every fixture here has one client
+subscribe and a second, independent client publish right after --
+there's no guarantee the broker processes the SUBSCRIBE before the
+PUBLISH lands, and when it doesn't, the message is simply never
+delivered (no error, no retry, just a wait that times out). Fixed by
+`_subscribe_and_wait` (`src/vda5050_amr/adapter.py`, duplicated for
+tests in `tests/fake_robot.py`), which blocks on the SUBACK via
+`on_subscribe` before the constructor -- or the test -- proceeds. Worth
+keeping an eye on for CI-only slowness beyond that (container pull time,
+noisy-neighbor scheduling), but the subscribe race was the actual bug.

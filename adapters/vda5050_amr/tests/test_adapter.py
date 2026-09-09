@@ -5,7 +5,7 @@ from collections.abc import Callable, Iterator
 
 import paho.mqtt.client as mqtt
 import pytest
-from fake_robot import FakeRobot
+from fake_robot import FakeRobot, subscribe_and_wait
 from router.models import Mission, MissionStatus, MissionType, RobotAvailability
 from vda5050_amr.adapter import Vda5050Adapter
 
@@ -142,7 +142,7 @@ def test_pause_resume_abort_publish_instant_actions(
         "uagv/v2/robot-router-demo/amr-01/instantActions",
         lambda client, userdata, message: received.append(message.payload.decode("utf-8")),
     )
-    robot_side_client.subscribe("uagv/v2/robot-router-demo/amr-01/instantActions")
+    subscribe_and_wait(robot_side_client, "uagv/v2/robot-router-demo/amr-01/instantActions")
 
     mission = Mission(
         work_order_id=3,

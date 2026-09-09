@@ -10,6 +10,7 @@ what adapters/vda5050_amr/ IS.
 from __future__ import annotations
 
 import json
+import threading
 import time
 
 import paho.mqtt.client as mqtt
@@ -28,6 +29,37 @@ from vda5050_amr.messages import (
 from vda5050_amr.topics import Vda5050Topics
 
 
+def subscribe_and_wait(client: mqtt.Client, topic: str, timeout: float = 5.0) -> None:
+    """Subscribe and block until the broker SUBACKs it.
+
+    paho's subscribe() returns as soon as the SUBSCRIBE packet is queued,
+    not once the broker has registered the filter. A publish that races
+    ahead of that registration -- plausible whenever the test publishes
+    right after subscribing, which several tests here do -- is simply
+    never delivered. That race is what made these tests flaky, including
+    in CI: see adapters/vda5050_amr/README.md.
+    """
+    acked = threading.Event()
+
+    def _on_subscribe(
+        client: mqtt.Client,
+        userdata: object,
+        mid: int,
+        reason_codes: list[object],
+        properties: object = None,
+    ) -> None:
+        acked.set()
+
+    previous_on_subscribe = client.on_subscribe
+    client.on_subscribe = _on_subscribe
+    try:
+        client.subscribe(topic)
+        if not acked.wait(timeout):
+            raise RuntimeError(f"broker did not ack subscription to {topic!r} within {timeout}s")
+    finally:
+        client.on_subscribe = previous_on_subscribe
+
+
 class FakeRobot:
     """Subscribes to `order` itself and reads the action id/type back out
     of it, the same way a real bridge would -- so tests never have to
@@ -42,7 +74,7 @@ class FakeRobot:
         self.latest_order: Order | None = None
 
         client.message_callback_add(self._topics.order, self._on_order)
-        client.subscribe(self._topics.order)
+        subscribe_and_wait(client, self._topics.order)
 
     def _on_order(self, client: mqtt.Client, userdata: object, message: mqtt.MQTTMessage) -> None:
         self.latest_order = Order.model_validate(json.loads(message.payload.decode("utf-8")))

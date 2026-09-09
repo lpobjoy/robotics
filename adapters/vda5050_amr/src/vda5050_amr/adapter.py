@@ -10,6 +10,7 @@ side is and isn't.
 from __future__ import annotations
 
 import json
+import threading
 import time
 import uuid
 from collections.abc import Callable, Iterator
@@ -43,6 +44,38 @@ from vda5050_amr.messages import (
 from vda5050_amr.topics import Vda5050Topics
 
 LocationLookup = Callable[[int], tuple[float, float]]
+
+
+def _subscribe_and_wait(client: mqtt.Client, topic: str, timeout: float = 5.0) -> None:
+    """Subscribe and block until the broker SUBACKs it.
+
+    paho's subscribe() returns as soon as the SUBSCRIBE packet is queued,
+    not once the broker has registered the filter. A publish from another
+    client (the robot side) that reaches the broker before that
+    registration completes is simply never delivered -- no error raised
+    anywhere, it just isn't there. That race is what made
+    adapters/vda5050_amr's MQTT tests flaky, including in CI: see
+    adapters/vda5050_amr/README.md.
+    """
+    acked = threading.Event()
+
+    def _on_subscribe(
+        client: mqtt.Client,
+        userdata: object,
+        mid: int,
+        reason_codes: list[object],
+        properties: object = None,
+    ) -> None:
+        acked.set()
+
+    previous_on_subscribe = client.on_subscribe
+    client.on_subscribe = _on_subscribe
+    try:
+        client.subscribe(topic)
+        if not acked.wait(timeout):
+            raise RuntimeError(f"broker did not ack subscription to {topic!r} within {timeout}s")
+    finally:
+        client.on_subscribe = previous_on_subscribe
 
 
 class Vda5050Adapter:
@@ -86,8 +119,8 @@ class Vda5050Adapter:
 
         self._client = mqtt_client
         self._client.on_message = self._on_message
-        self._client.subscribe(self._topics.state)
-        self._client.subscribe(self._topics.connection)
+        _subscribe_and_wait(self._client, self._topics.state)
+        _subscribe_and_wait(self._client, self._topics.connection)
 
     def _next_header(self) -> Header:
         self._header_id += 1
