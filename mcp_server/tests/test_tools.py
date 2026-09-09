@@ -148,3 +148,40 @@ def test_dispatch_with_no_idle_robot_raises(
             required_capabilities=[MissionType.PATROL],
             requested_by="test-agent",
         )
+
+
+def test_advance_fake_mission_completed(
+    mission_tools: MissionTools, eam_test_client: TestClient
+) -> None:
+    work_order_id = _first_draft_work_order_id(eam_test_client)
+    _release(eam_test_client, work_order_id)
+    qualification = mission_tools.qualify_robots(work_order_id)
+    best = qualification.qualified_robots[0]
+    handle = mission_tools.dispatch_mission(
+        work_order_id,
+        qualification.target_location_id,
+        list(qualification.required_capabilities),
+        requested_by="test-agent",
+    )
+
+    mission_tools.advance_fake_mission(str(best.robot_id), handle.mission_id, "completed")
+
+    assert mission_tools.get_mission_status(handle.mission_id).status == MissionStatus.COMPLETED
+
+
+def test_advance_fake_mission_rejects_unknown_status(
+    mission_tools: MissionTools, eam_test_client: TestClient
+) -> None:
+    work_order_id = _first_draft_work_order_id(eam_test_client)
+    _release(eam_test_client, work_order_id)
+    qualification = mission_tools.qualify_robots(work_order_id)
+    best = qualification.qualified_robots[0]
+    handle = mission_tools.dispatch_mission(
+        work_order_id,
+        qualification.target_location_id,
+        list(qualification.required_capabilities),
+        requested_by="test-agent",
+    )
+
+    with pytest.raises(ValueError, match="unsupported status"):
+        mission_tools.advance_fake_mission(str(best.robot_id), handle.mission_id, "in_orbit")

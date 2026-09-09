@@ -79,6 +79,7 @@ async def test_mcp_server_lists_the_expected_tools_over_real_stdio(running_eam: 
         "mark_failed",
         "escalate_to_human",
         "abort_mission",
+        "advance_fake_mission",
     }
 
 

@@ -26,10 +26,13 @@ Built at build-sequence step 6.
   `MissionTools`' methods as MCP tools over stdio. Reads `EAM_BASE_URL`
   from the environment.
 
-Ten tools: `list_released_work_orders`, `get_work_order`,
+Eleven tools: `list_released_work_orders`, `get_work_order`,
 `qualify_robots`, `dispatch_mission`, `get_mission_status`,
 `mark_in_progress`, `mark_completed`, `mark_failed`,
-`escalate_to_human`, `abort_mission`.
+`escalate_to_human`, `abort_mission`, and `advance_fake_mission`
+(demo/test only -- forces a FakeAdapter-backed mission to a terminal
+status, standing in for what a real robot's own telemetry would
+eventually report; raises against anything not FakeAdapter-backed).
 
 ## Not covered
 

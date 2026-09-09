@@ -12,6 +12,7 @@ from collections.abc import Callable
 
 import networkx as nx
 from eam.models import WorkOrderStatus
+from router.fake_adapter import FakeAdapter
 from router.models import Mission, MissionHandle, MissionStatusReport, MissionType
 from router.router import Router
 from worldmodel.models import WorkOrder
@@ -93,3 +94,29 @@ class MissionTools:
 
     def abort_mission(self, mission_id: str) -> None:
         self._router.abort(mission_id)
+
+    def advance_fake_mission(self, robot_id: str, mission_id: str, status: str) -> None:
+        """Demo/test only: force a FakeAdapter-backed mission straight to
+        a terminal status, standing in for what a real robot's own
+        telemetry would eventually report on its own. Every robot is
+        FakeAdapter-backed until step 7+ lands real adapters -- this is
+        how the full dispatch-to-completion (and dispatch-to-failure)
+        lifecycle is demonstrable end to end before a real robot exists.
+        Raises if robot_id isn't backed by a FakeAdapter: this must never
+        be reachable against a real adapter.
+        """
+        adapter = self._router.get_adapter(robot_id)
+        if not isinstance(adapter, FakeAdapter):
+            raise TypeError(
+                f"advance_fake_mission only works against a FakeAdapter; "
+                f"robot {robot_id!r} is not one"
+            )
+        handle = MissionHandle(
+            mission_id=mission_id, robot_id=robot_id, ecosystem=adapter.capabilities().ecosystem
+        )
+        if status == "completed":
+            adapter.complete(handle)
+        elif status == "aborted":
+            adapter.abort(handle)
+        else:
+            raise ValueError(f"unsupported status {status!r} -- use 'completed' or 'aborted'")

@@ -36,11 +36,14 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "anyio" },
     { name = "audit" },
     { name = "eam" },
+    { name = "httpx" },
     { name = "identity" },
     { name = "mcp-server" },
     { name = "router" },
+    { name = "uvicorn" },
     { name = "worldmodel" },
 ]
 
@@ -53,11 +56,14 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "anyio" },
     { name = "audit", editable = "audit" },
     { name = "eam", editable = "eam" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "identity", editable = "identity" },
     { name = "mcp-server", editable = "mcp_server" },
     { name = "router", editable = "router" },
+    { name = "uvicorn", specifier = ">=0.30" },
     { name = "worldmodel", editable = "worldmodel" },
 ]
 

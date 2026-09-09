@@ -119,5 +119,16 @@ def abort_mission(mission_id: str) -> None:
     _tools.abort_mission(mission_id)
 
 
+@server.tool()
+def advance_fake_mission(robot_id: str, mission_id: str, status: str) -> None:
+    """Demo/test only: force a mission straight to a terminal status
+    (completed or aborted). Only works while the robot is backed by a
+    FakeAdapter (true for every robot until a real adapter is registered
+    for it) -- raises otherwise. A real robot reports its own status
+    through get_mission_status; this exists only because a fake one
+    can't."""
+    _tools.advance_fake_mission(robot_id, mission_id, status)
+
+
 if __name__ == "__main__":
     server.run(transport="stdio")
