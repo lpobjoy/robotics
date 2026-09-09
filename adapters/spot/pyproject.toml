@@ -2,8 +2,14 @@
 name = "spot"
 version = "0.1.0"
 requires-python = ">=3.11"
-description = "Boston Dynamics Spot adapter against bosdyn-client, tested against a fake (no public simulator exists). Status once built: BUILT_AGAINST_SDK_TESTED_WITH_FAKE. See CLAUDE.md section 4.5. Not yet built (step 12)."
-dependencies = []
+description = "Boston Dynamics Spot adapter against bosdyn-client, tested against a fake (no public simulator exists). Status: BUILT_AGAINST_SDK_TESTED_WITH_FAKE, built at step 12. See CLAUDE.md section 4.5."
+dependencies = [
+    "bosdyn-client",
+    "router",
+]
+
+[tool.uv.sources]
+router = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
