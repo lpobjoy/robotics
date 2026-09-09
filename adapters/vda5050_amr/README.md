@@ -63,3 +63,9 @@ Needs Docker (spins up a real, ephemeral Mosquitto broker):
 ```bash
 uv run pytest adapters/vda5050_amr
 ```
+
+These are real MQTT round trips over a real broker, not mocked -- under
+heavy system load (a lot of other things competing for CPU) a wait can
+occasionally exceed its timeout. Re-running in isolation has always
+passed cleanly when this has been seen; it hasn't reproduced as an
+actual logic bug. Disclosed here rather than silently retried away.

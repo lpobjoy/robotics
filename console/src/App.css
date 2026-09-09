@@ -1,0 +1,159 @@
+.app {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #1a1a1a;
+}
+
+header h1 {
+  margin-bottom: 0.25rem;
+  font-size: 1.5rem;
+}
+
+.muted {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.error {
+  color: #b00020;
+  font-size: 0.9rem;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+section h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.25rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid #eee;
+}
+
+tbody tr {
+  cursor: pointer;
+}
+
+tbody tr:hover {
+  background: #f7f7f7;
+}
+
+tbody tr.selected {
+  background: #eef4ff;
+}
+
+.status {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 0.75rem;
+  font-size: 0.8rem;
+  background: #eee;
+}
+
+.status-AwaitingHuman,
+.status-failed,
+.status-Failed {
+  background: #fde2e2;
+  color: #a10000;
+}
+
+.status-Completed,
+.status-completed {
+  background: #e2f7e2;
+  color: #157a15;
+}
+
+.status-InProgress,
+.status-in_progress,
+.status-Dispatched,
+.status-dispatched {
+  background: #e2ecfd;
+  color: #16469b;
+}
+
+.escalation-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.escalation-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: #fff8e6;
+  border-radius: 0.4rem;
+}
+
+.escalation-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background: white;
+  border-radius: 0.3rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+button:hover {
+  background: #f0f0f0;
+}
+
+button.danger {
+  border-color: #d33;
+  color: #d33;
+}
+
+button.danger:hover {
+  background: #fde2e2;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.mission-status {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  font-size: 0.9rem;
+}
+
+.mission-status dt {
+  font-weight: 600;
+  color: #555;
+}
+
+.detail-cell {
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: #555;
+  max-width: 300px;
+  overflow-wrap: anywhere;
+}
