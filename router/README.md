@@ -1,7 +1,8 @@
 # router
 
 Fleet abstraction and dispatch. See CLAUDE.md section 4.4. Built at
-build-sequence step 4.
+build-sequence step 4; identity-checked adapter registration added at
+step 5.
 
 ## What's here
 
@@ -16,11 +17,14 @@ build-sequence step 4.
   then availability, then shortest-path distance via
   `worldmodel.query.shortest_distance`). Every dispatch, pause, resume,
   and abort writes an `audit.AuditEvent` -- including *why* a robot was
-  chosen -- before the adapter is ever called.
+  chosen -- before the adapter is ever called. If constructed with an
+  `identity.IdentityService`, `register_adapter` requires a valid
+  client-credentials token matching the adapter's own `robot_id`
+  (CLAUDE.md section 4.7); without one, registration behaves exactly as
+  it did in step 4.
 - `fake_adapter.py` -- `FakeAdapter`, an in-memory `FleetAdapter` for
   testing. Not one of the labelled statuses in `adapters/`; it's router's
-  own test double, reused in step 5 for audit/identity correlation
-  testing.
+  own test double.
 
 ## Not covered
 
@@ -28,6 +32,9 @@ build-sequence step 4.
   restart. Long-running survive-a-restart supervision is the agent's job
   (CLAUDE.md section 4.3, step 6), not router's.
 - No real adapters registered yet -- `adapters/` starts at step 7.
+- Identity is checked at adapter *registration*, not on every dispatch
+  call -- `FleetAdapter` calls are still in-process method calls in this
+  repo, not network hops. See ADR-004.
 
 ## Running it
 

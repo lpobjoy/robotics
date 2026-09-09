@@ -8,11 +8,13 @@ dependencies = [
     "networkx>=3.3",
     "audit",
     "worldmodel",
+    "identity",
 ]
 
 [tool.uv.sources]
 audit = { workspace = true }
 worldmodel = { workspace = true }
+identity = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

@@ -8,6 +8,12 @@ the audit sink with the reason, before the adapter is ever called.
 Every state transition and every command to a robot goes through the
 audit sink before it goes anywhere else: dispatch, pause, resume, and
 abort all record an audit event first.
+
+Machine identity (CLAUDE.md section 4.7, ADR-004): if an IdentityService
+is configured, an adapter must present a valid client-credentials token
+whose client_id matches its own robot_id before it can be registered.
+Without one, register_adapter behaves exactly as it did before step 5 --
+existing callers that don't care about identity aren't forced to.
 """
 
 from __future__ import annotations
@@ -15,6 +21,8 @@ from __future__ import annotations
 import networkx as nx
 from audit.models import AuditEvent
 from audit.sink import AuditSink, InMemoryAuditSink
+from identity.service import IdentityService
+from identity.tokens import InvalidTokenError
 from worldmodel.query import shortest_distance
 
 from router.models import (
@@ -35,16 +43,81 @@ class UnknownMissionError(LookupError):
     """No dispatched mission with this id is being tracked."""
 
 
+class AdapterAuthenticationError(RuntimeError):
+    """Raised when an adapter presents no, an invalid, or a mismatched identity token."""
+
+
 class Router:
-    def __init__(self, graph: nx.DiGraph, audit_sink: AuditSink | None = None) -> None:
+    def __init__(
+        self,
+        graph: nx.DiGraph,
+        audit_sink: AuditSink | None = None,
+        identity: IdentityService | None = None,
+    ) -> None:
         self._graph = graph
         self._audit_sink: AuditSink = audit_sink if audit_sink is not None else InMemoryAuditSink()
+        self._identity = identity
         self._adapters_by_robot_id: dict[str, FleetAdapter] = {}
         self._handles_by_mission_id: dict[str, tuple[MissionHandle, FleetAdapter]] = {}
 
-    def register_adapter(self, adapter: FleetAdapter) -> None:
+    def register_adapter(self, adapter: FleetAdapter, *, token: str | None = None) -> None:
         descriptor = adapter.capabilities()
+
+        if self._identity is not None:
+            self._authenticate_adapter(descriptor.robot_id, token)
+            self._audit_sink.record(
+                AuditEvent(
+                    actor=f"adapter:{descriptor.robot_id}",
+                    action="adapter.register",
+                    detail={"ecosystem": descriptor.ecosystem},
+                )
+            )
+
         self._adapters_by_robot_id[descriptor.robot_id] = adapter
+
+    def _authenticate_adapter(self, robot_id: str, token: str | None) -> None:
+        assert self._identity is not None  # only called when configured
+
+        if token is None:
+            self._audit_sink.record(
+                AuditEvent(
+                    actor="router",
+                    action="adapter.register.rejected",
+                    detail={"robot_id": robot_id, "reason": "no token presented"},
+                )
+            )
+            raise AdapterAuthenticationError(f"adapter {robot_id!r} presented no identity token")
+
+        try:
+            claimed_identity = self._identity.verify(token)
+        except InvalidTokenError as exc:
+            self._audit_sink.record(
+                AuditEvent(
+                    actor="router",
+                    action="adapter.register.rejected",
+                    detail={"robot_id": robot_id, "reason": str(exc)},
+                )
+            )
+            raise AdapterAuthenticationError(
+                f"adapter {robot_id!r} presented an invalid token: {exc}"
+            ) from exc
+
+        if claimed_identity.client_id != robot_id:
+            self._audit_sink.record(
+                AuditEvent(
+                    actor="router",
+                    action="adapter.register.rejected",
+                    detail={
+                        "robot_id": robot_id,
+                        "reason": "token client_id does not match robot_id",
+                        "token_client_id": claimed_identity.client_id,
+                    },
+                )
+            )
+            raise AdapterAuthenticationError(
+                f"token client_id {claimed_identity.client_id!r} does not match "
+                f"adapter robot_id {robot_id!r}"
+            )
 
     def dispatch(self, mission: Mission) -> MissionHandle:
         ranked = self._rank_candidates(mission)

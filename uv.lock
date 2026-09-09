@@ -281,6 +281,12 @@ wheels = [
 name = "identity"
 version = "0.1.0"
 source = { editable = "identity" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2" }]
 
 [[package]]
 name = "idna"
@@ -768,6 +774,7 @@ version = "0.1.0"
 source = { editable = "router" }
 dependencies = [
     { name = "audit" },
+    { name = "identity" },
     { name = "networkx" },
     { name = "pydantic" },
     { name = "worldmodel" },
@@ -776,6 +783,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "audit", editable = "audit" },
+    { name = "identity", editable = "identity" },
     { name = "networkx", specifier = ">=3.3" },
     { name = "pydantic", specifier = ">=2" },
     { name = "worldmodel", editable = "worldmodel" },
