@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>vda5050_bridge</name>
+  <version>0.1.0</version>
+  <description>
+    Subscribes to VDA 5050 order/instantActions over MQTT and drives Nav2;
+    publishes VDA 5050 state/visualization/connection back. See
+    adapters/vda5050_amr/README.md and ros2_bridge/README.md. This is the
+    ROS 2 half of the split described in CLAUDE.md section 4.5 -- the
+    other half (src/vda5050_amr/) speaks only MQTT and has no ROS
+    dependency at all.
+  </description>
+  <maintainer email="lpobjoy@gmail.com">Lewis Pobjoy</maintainer>
+  <license>Apache-2.0</license>
+
+  <depend>rclpy</depend>
+  <depend>nav2_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>cv_bridge</depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

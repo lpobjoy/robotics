@@ -3,7 +3,20 @@ name = "vda5050_amr"
 version = "0.1.0"
 requires-python = ">=3.11"
 description = "ROS 2 + Gazebo + Nav2 mobile robot adapter speaking only VDA 5050 over MQTT. Status once built: RUN_IN_SIM. See CLAUDE.md section 4.5. Not yet built (step 7)."
-dependencies = []
+dependencies = [
+    "pydantic>=2",
+    "paho-mqtt>=2.0",
+    "router",
+]
+
+[dependency-groups]
+dev = [
+    "audit",
+]
+
+[tool.uv.sources]
+router = { workspace = true }
+audit = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
