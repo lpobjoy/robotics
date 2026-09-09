@@ -28,6 +28,9 @@ Built at build-sequence step 3.
   robot qualifies if it has *every* required capability (not just one)
   and a `location_links` path exists from its home location to the work
   order's target. Results are ranked by route distance, cheapest first.
+  Also exports `shortest_distance(graph, from_id, to_id)`, the standalone
+  shortest-path helper `router` (step 4) reuses for its own dispatch-time
+  cost ranking instead of duplicating graph logic.
 
 ## Not covered
 

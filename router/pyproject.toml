@@ -3,7 +3,16 @@ name = "router"
 version = "0.1.0"
 requires-python = ">=3.11"
 description = "Fleet abstraction and dispatch: Mission schema, FleetAdapter protocol, capability-based robot selection, audit hooks. See CLAUDE.md section 4.4. Not yet built (step 4)."
-dependencies = []
+dependencies = [
+    "pydantic>=2",
+    "networkx>=3.3",
+    "audit",
+    "worldmodel",
+]
+
+[tool.uv.sources]
+audit = { workspace = true }
+worldmodel = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

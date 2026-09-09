@@ -90,3 +90,20 @@ def qualify_robots_for_work_order(graph: nx.DiGraph, work_order_id: int) -> Work
         required_capabilities=required,
         qualified_robots=tuple(qualified),
     )
+
+
+def shortest_distance(
+    graph: nx.DiGraph, from_location_id: int, to_location_id: int
+) -> float | None:
+    """Shortest REACHABLE_FROM path distance between two locations, or
+    None if no path exists. Exposed separately from
+    qualify_robots_for_work_order so router (CLAUDE.md section 4.4) can
+    reuse the same graph for its own dispatch-time distance ranking
+    without duplicating shortest-path logic.
+    """
+    source = location_node(from_location_id)
+    target = location_node(to_location_id)
+    try:
+        return float(nx.shortest_path_length(graph, source, target, weight="distance_m"))
+    except nx.NetworkXNoPath:
+        return None

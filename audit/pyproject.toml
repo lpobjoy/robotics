@@ -3,7 +3,9 @@ name = "audit"
 version = "0.1.0"
 requires-python = ">=3.11"
 description = "Append-only audit log correlating every decision and robot command to a work order and mission, with actor identity on every row. See CLAUDE.md section 4.7. Not yet built (step 5)."
-dependencies = []
+dependencies = [
+    "pydantic>=2",
+]
 
 [build-system]
 requires = ["hatchling"]

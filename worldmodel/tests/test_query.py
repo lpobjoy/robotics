@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from worldmodel.graph import build_graph
 from worldmodel.models import Asset, Location, LocationLink, MissionCapability, Robot, WorkOrder
-from worldmodel.query import UnknownWorkOrderError, qualify_robots_for_work_order
+from worldmodel.query import UnknownWorkOrderError, qualify_robots_for_work_order, shortest_distance
 
 LOCATIONS = [
     Location(id=1, name="Pump House", x=0.0, y=0.0),
@@ -146,3 +146,18 @@ def test_unknown_work_order_raises() -> None:
     graph = build_graph(LOCATIONS, LINKS, ASSETS, [], WORK_ORDERS)
     with pytest.raises(UnknownWorkOrderError):
         qualify_robots_for_work_order(graph, 99999)
+
+
+def test_shortest_distance_between_reachable_locations() -> None:
+    graph = build_graph(LOCATIONS, LINKS, ASSETS, [], WORK_ORDERS)
+    assert shortest_distance(graph, 1, 3) == 60.0
+
+
+def test_shortest_distance_same_location_is_zero() -> None:
+    graph = build_graph(LOCATIONS, LINKS, ASSETS, [], WORK_ORDERS)
+    assert shortest_distance(graph, 1, 1) == 0.0
+
+
+def test_shortest_distance_unreachable_is_none() -> None:
+    graph = build_graph(LOCATIONS, LINKS, ASSETS, [], WORK_ORDERS)
+    assert shortest_distance(graph, 1, 4) is None
