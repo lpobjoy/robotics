@@ -2,8 +2,22 @@
 (this is exactly what the agent's MCP client spawns). Wraps MissionTools
 as MCP tools using the official MCP Python SDK.
 
-Reads EAM_BASE_URL from the environment (default http://localhost:8000)
--- the EAM must already be running.
+Reads EAM_BASE_URL and AUDIT_DB_PATH from the environment (defaults
+http://localhost:8000 and ":memory:" -- the EAM must already be
+running).
+
+Said plainly: this process's Router (mission dispatch state, registered
+FakeAdapters) is entirely separate, in-memory, and process-local -- it
+is NOT the same Router instance http_api.py's mcp_server serves to the
+console. In deploy/docker-compose.yml, the agent spawns this as its own
+subprocess per invocation while the console talks to a long-running
+http_api.py process; a mission the agent dispatches through this
+process will not appear as in-progress in the console's live mission
+status view, because that view is reading a different Router.
+Pointing both at the same AUDIT_DB_PATH (deploy/docker-compose.yml does
+this) keeps the audit trail itself consistent between them, which is
+the one piece of state SqliteAuditSink actually persists to a shared
+file; mission status is not something either process persists.
 """
 
 from __future__ import annotations
@@ -16,8 +30,9 @@ from router.models import MissionType
 from mcp_server.wiring import build_mission_tools
 
 EAM_BASE_URL = os.environ.get("EAM_BASE_URL", "http://localhost:8000")
+AUDIT_DB_PATH = os.environ.get("AUDIT_DB_PATH", ":memory:")
 
-_tools = build_mission_tools(EAM_BASE_URL)
+_tools = build_mission_tools(EAM_BASE_URL, AUDIT_DB_PATH)
 
 server = MCPServer(name="robot-router-mcp")
 

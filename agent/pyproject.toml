@@ -7,6 +7,11 @@ dependencies = [
     "pydantic>=2",
     "pydantic-ai>=0.0.30",
     "mcp>=1.0",
+    # Not just a test/dev tool: mission_agent.py's mcp_toolset() spawns
+    # `python -m mcp_server` as a real subprocess at runtime, using the
+    # agent's own interpreter (sys.executable) -- mcp_server has to be
+    # installed in this same environment for that to exist to spawn.
+    "mcp_server",
 ]
 
 [dependency-groups]
@@ -16,7 +21,6 @@ dev = [
     "router",
     "audit",
     "identity",
-    "mcp_server",
     "uvicorn>=0.30",
     "httpx>=0.27",
     "anyio",

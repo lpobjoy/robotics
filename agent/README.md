@@ -49,23 +49,17 @@ eleven -- one is demo/test-only) MCP tools in `mcp_server/`.
 - No permission/approval-chain enforcement yet -- `Mission.approval_chain`
   exists on the schema (router, step 4) but nothing checks it before
   dispatch.
+- No automatic trigger (no poller, no webhook receiver) -- `__main__.py`
+  is a manual CLI, run once per work order. See its own module
+  docstring, and `deploy/docker-compose.yml`/`deploy/k3d/agent-job.yaml`
+  (step 13) for how it's actually invoked in a deployed environment.
 
 ## Running it
 
 Needs `ANTHROPIC_API_KEY` and a running `eam`:
 
 ```bash
-ANTHROPIC_API_KEY=... EAM_BASE_URL=http://localhost:8000 uv run python -c "
-import asyncio
-from agent.mission_agent import build_mission_agent
-from agent.state import MissionStateStore
-
-async def main():
-    agent = build_mission_agent(MissionStateStore('agent_state.db'))
-    print(await agent.process_released_work_order(1))
-
-asyncio.run(main())
-"
+ANTHROPIC_API_KEY=... EAM_BASE_URL=http://localhost:8000 uv run python -m agent 1
 ```
 
 Tests (no API key needed):

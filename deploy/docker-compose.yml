@@ -7,6 +7,114 @@ services:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     restart: unless-stopped
 
-# Services are added here as each build-sequence step (CLAUDE.md section 6)
-# lands: eam, router, mcp_server + agent, the vda5050_amr adapter, telemetry
-# ingestion, console. Nothing else runs yet.
+  eam:
+    build:
+      context: ..
+      dockerfile: deploy/eam/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - CONSOLE_ORIGIN=http://localhost:5173
+    restart: unless-stopped
+
+  mcp_server:
+    build:
+      context: ..
+      dockerfile: deploy/mcp_server/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - EAM_BASE_URL=http://eam:8000
+      - CONSOLE_ORIGIN=http://localhost:5173
+      - AUDIT_DB_PATH=/data/audit.db
+    volumes:
+      - mcp_server_data:/data
+    depends_on:
+      - eam
+    restart: unless-stopped
+
+  telemetry:
+    build:
+      context: ..
+      dockerfile: deploy/telemetry/Dockerfile
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      - EAM_BASE_URL=http://eam:8000
+      - TELEMETRY_DB_PATH=/data/telemetry.db
+    volumes:
+      - telemetry_data:/data
+    depends_on:
+      - mosquitto
+      - eam
+    restart: unless-stopped
+
+  console:
+    build:
+      context: ..
+      dockerfile: deploy/console/Dockerfile
+      args:
+        VITE_EAM_URL: http://localhost:8000
+        VITE_HTTP_API_URL: http://localhost:8001
+    ports:
+      - "5173:5173"
+    environment:
+      - PORT=5173
+    depends_on:
+      - eam
+      - mcp_server
+    restart: unless-stopped
+
+  # Not started by `docker compose up` -- this is a one-shot CLI, not a
+  # server (see agent/__main__.py's module docstring). Run it against a
+  # specific released work order with:
+  #   docker compose run --rm agent <work_order_id>
+  #
+  # AUDIT_DB_PATH points at the SAME file mcp_server's own container
+  # writes to (mcp_server_data, mounted here too) -- the one piece of
+  # state this shares with what the console reads. It does NOT share
+  # Router/mission-status state: this spawns its own separate
+  # `python -m mcp_server` subprocess with its own in-memory Router, so
+  # a mission dispatched here will not show as in-progress in the
+  # console's live status view. See mcp_server/server.py's docstring.
+  agent:
+    build:
+      context: ..
+      dockerfile: deploy/agent/Dockerfile
+    environment:
+      - EAM_BASE_URL=http://eam:8000
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - MISSION_STATE_DB_PATH=/data/agent_state.db
+      - AUDIT_DB_PATH=/mcp_data/audit.db
+    volumes:
+      - agent_data:/data
+      - mcp_server_data:/mcp_data
+    depends_on:
+      - eam
+    profiles:
+      - tools
+
+# Not included here, and why:
+# - The vda5050_amr adapter's ros2_bridge/ (ROS 2 + Gazebo + Nav2) --
+#   deploy/vda5050_amr/Dockerfile builds it, but it isn't wired into
+#   this compose file. It needs a working headless-rendering GPU/Mesa
+#   setup and a much longer boot; see ADR-005 and
+#   adapters/vda5050_amr/ros2_bridge/README.md for exactly what's
+#   proven and what isn't. Run it standalone with that Dockerfile if
+#   you want to see it boot.
+# - adapters/unitree (its own standalone uv project, ADR-006) and
+#   adapters/spot have no long-running server component of their own to
+#   containerize -- both are libraries the router process would import,
+#   not services.
+# - The mission agent has no automatic trigger wired up (no poller, no
+#   webhook receiver) -- see agent/__main__.py's module docstring.
+#   Release a work order in the console, then run
+#   `docker compose run --rm agent <work_order_id>` (needs
+#   ANTHROPIC_API_KEY set) to process it -- see the root README.
+
+volumes:
+  mcp_server_data:
+  telemetry_data:
+  agent_data:

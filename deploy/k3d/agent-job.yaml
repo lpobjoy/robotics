@@ -1,0 +1,52 @@
+# Not part of `kubectl apply -k`'s always-on set (see kustomization.yaml)
+# -- this is a template for a one-shot Job, the k8s equivalent of
+# `docker compose run --rm agent <work_order_id>` (see agent/__main__.py's
+# module docstring for why this is manual, not an automatic poller).
+# Apply it directly, substituting a real work order id and a real
+# Anthropic API key each time:
+#
+#   kubectl apply -n robot-router -f - <<EOF
+#   $(sed "s/WORK_ORDER_ID_PLACEHOLDER/42/; s/ANTHROPIC_API_KEY_PLACEHOLDER/sk-.../" deploy/k3d/agent-job.yaml)
+#   EOF
+#
+# Job names must be unique per run -- delete a prior run's Job first
+# (`kubectl delete job -n robot-router agent-run`) or generate a fresh
+# name for each invocation.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: agent-run
+  namespace: robot-router
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: agent
+          image: robot-router/agent:local
+          imagePullPolicy: IfNotPresent
+          args: ["WORK_ORDER_ID_PLACEHOLDER"]
+          env:
+            - name: EAM_BASE_URL
+              value: "http://eam:8000"
+            - name: MISSION_STATE_DB_PATH
+              value: "/data/agent_state.db"
+            # Same audit trail mcp-server's own container writes to --
+            # see mcp_server/server.py's docstring for what this does
+            # and doesn't share.
+            - name: AUDIT_DB_PATH
+              value: "/mcp-data/audit.db"
+            - name: ANTHROPIC_API_KEY
+              value: "ANTHROPIC_API_KEY_PLACEHOLDER"
+          volumeMounts:
+            - name: agent-data
+              mountPath: /data
+            - name: mcp-data
+              mountPath: /mcp-data
+      volumes:
+        - name: agent-data
+          emptyDir: {}
+        - name: mcp-data
+          persistentVolumeClaim:
+            claimName: mcp-server-data

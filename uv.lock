@@ -30,6 +30,7 @@ version = "0.1.0"
 source = { editable = "agent" }
 dependencies = [
     { name = "mcp" },
+    { name = "mcp-server" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
 ]
@@ -41,7 +42,6 @@ dev = [
     { name = "eam" },
     { name = "httpx" },
     { name = "identity" },
-    { name = "mcp-server" },
     { name = "router" },
     { name = "uvicorn" },
     { name = "worldmodel" },
@@ -50,6 +50,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "mcp", specifier = ">=1.0" },
+    { name = "mcp-server", editable = "mcp_server" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pydantic-ai", specifier = ">=0.0.30" },
 ]
@@ -61,7 +62,6 @@ dev = [
     { name = "eam", editable = "eam" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "identity", editable = "identity" },
-    { name = "mcp-server", editable = "mcp_server" },
     { name = "router", editable = "router" },
     { name = "uvicorn", specifier = ">=0.30" },
     { name = "worldmodel", editable = "worldmodel" },

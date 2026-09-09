@@ -14,9 +14,12 @@ order this repo follows.
 
 ## Status
 
-Step 1 of 15 (repo skeleton) — see CLAUDE.md section 6. Nothing here runs
-end to end yet. Each component directory has its own `README.md` stating
-what it will do and which step builds it.
+Step 13 of 15 (k3d deployment) — see CLAUDE.md section 6. `eam`,
+`mcp_server`, `telemetry`, and `console` run together end to end via
+`docker compose` or on a local k3d cluster; `agent` runs as a manual CLI
+trigger against them. Each component directory has its own `README.md`
+stating what it does and which step built it; `docs/decisions/` has an
+ADR for every non-obvious choice along the way.
 
 ## Layout
 
@@ -29,7 +32,7 @@ what it will do and which step builds it.
 - `telemetry/` — MQTT ingestion into a time-series store
 - `audit/`, `identity/` — append-only audit log, machine identity
 - `console/` — thin operator UI (TypeScript, Vite + React)
-- `deploy/` — docker-compose and (later) k3d manifests
+- `deploy/` — docker-compose and k3d (kustomize) manifests
 - `docs/` — job spec, architecture, ADRs, security, edge deployment, standards
 
 ## Running it
@@ -53,8 +56,20 @@ their own.
 docker compose -f deploy/docker-compose.yml up
 ```
 
-Right now that starts only the Mosquitto broker — components are added to
-compose as each build-sequence step lands them.
+Starts Mosquitto, `eam` (`:8000`), `mcp_server`'s HTTP API (`:8001`),
+`telemetry`, and the console (`:5173`). Release a work order in the
+console, then process it with the agent (needs `ANTHROPIC_API_KEY`):
+
+```bash
+ANTHROPIC_API_KEY=... docker compose -f deploy/docker-compose.yml run --rm agent <work_order_id>
+```
+
+See `deploy/docker-compose.yml`'s own comments for exactly what's
+*not* included (the ROS 2 + Gazebo half of `adapters/vda5050_amr`,
+`adapters/unitree`/`adapters/spot` which have no server component of
+their own, and why the agent is a manual step rather than automatic).
+`deploy/k3d/README.md` has the same stack running on a local k3d
+cluster instead.
 
 ## Requirements table
 

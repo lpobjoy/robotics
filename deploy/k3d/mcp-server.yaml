@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mcp-server-data
+  namespace: robot-router
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server
+  namespace: robot-router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-server
+  template:
+    metadata:
+      labels:
+        app: mcp-server
+    spec:
+      containers:
+        - name: mcp-server
+          image: robot-router/mcp-server:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8001
+          env:
+            - name: PORT
+              value: "8001"
+            - name: EAM_BASE_URL
+              value: "http://eam:8000"
+            - name: CONSOLE_ORIGIN
+              value: "http://localhost:5173"
+            - name: AUDIT_DB_PATH
+              value: "/data/audit.db"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mcp-server-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-server
+  namespace: robot-router
+spec:
+  selector:
+    app: mcp-server
+  ports:
+    - port: 8001
+      targetPort: 8001

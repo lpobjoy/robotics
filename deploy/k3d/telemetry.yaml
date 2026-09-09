@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: telemetry-data
+  namespace: robot-router
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemetry
+  namespace: robot-router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telemetry
+  template:
+    metadata:
+      labels:
+        app: telemetry
+    spec:
+      containers:
+        - name: telemetry
+          image: robot-router/telemetry:local
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MQTT_HOST
+              value: "mosquitto"
+            - name: MQTT_PORT
+              value: "1883"
+            - name: EAM_BASE_URL
+              value: "http://eam:8000"
+            - name: TELEMETRY_DB_PATH
+              value: "/data/telemetry.db"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: telemetry-data
