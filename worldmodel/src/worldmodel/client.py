@@ -6,7 +6,7 @@ consumer, not the dialect-matching surface eam/api_odata.py exists for.
 from __future__ import annotations
 
 from types import TracebackType
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import httpx
 from pydantic import BaseModel
@@ -15,12 +15,22 @@ from worldmodel.models import Asset, Location, LocationLink, Robot, WorkOrder
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
+# fastapi.testclient.TestClient isn't an httpx.Client in every version of
+# this stack -- some builds wrap a separate httpx2.Client instead, and its
+# methods' exact keyword-only signatures differ enough that no Protocol
+# both is sound and matches real httpx.Client too. `client` is typed Any:
+# it only ever holds an httpx.Client (default, real usage) or a test
+# double (TestClient) that duck-types get()/close() the same way.
+_InjectedClient = Any
+
 
 class EamClient:
     def __init__(
-        self, base_url: str = "http://localhost:8000", *, client: httpx.Client | None = None
+        self, base_url: str = "http://localhost:8000", *, client: _InjectedClient | None = None
     ) -> None:
-        self._client = client if client is not None else httpx.Client(base_url=base_url)
+        self._client: _InjectedClient = (
+            client if client is not None else httpx.Client(base_url=base_url)
+        )
         self._owns_client = client is None
 
     def close(self) -> None:

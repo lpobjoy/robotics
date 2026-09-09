@@ -3,7 +3,27 @@ name = "mcp_server"
 version = "0.1.0"
 requires-python = ">=3.11"
 description = "MCP server wrapping the router and EAM as typed tools for the agent. The agent must never call adapters directly. See CLAUDE.md section 4.3. Not yet built (step 6)."
-dependencies = []
+dependencies = [
+    "pydantic>=2",
+    "httpx>=0.27",
+    "networkx>=3.3",
+    "mcp>=1.0",
+    "eam",
+    "worldmodel",
+    "router",
+]
+
+[dependency-groups]
+dev = [
+    "uvicorn>=0.30",
+    "pydantic-ai",
+    "anyio",
+]
+
+[tool.uv.sources]
+eam = { workspace = true }
+worldmodel = { workspace = true }
+router = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

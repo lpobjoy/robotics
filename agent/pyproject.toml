@@ -3,7 +3,29 @@ name = "agent"
 version = "0.1.0"
 requires-python = ">=3.11"
 description = "Pydantic AI mission agent: reads released work orders, plans missions, dispatches via the router, supervises execution, and escalates to a human on uncertainty. See CLAUDE.md section 4.3. Not yet built (step 6)."
-dependencies = []
+dependencies = [
+    "pydantic>=2",
+    "pydantic-ai>=0.0.30",
+    "mcp>=1.0",
+]
+
+[dependency-groups]
+dev = [
+    "eam",
+    "worldmodel",
+    "router",
+    "audit",
+    "identity",
+    "mcp_server",
+]
+
+[tool.uv.sources]
+eam = { workspace = true }
+worldmodel = { workspace = true }
+router = { workspace = true }
+audit = { workspace = true }
+identity = { workspace = true }
+mcp_server = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

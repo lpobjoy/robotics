@@ -75,6 +75,9 @@ class Router:
 
         self._adapters_by_robot_id[descriptor.robot_id] = adapter
 
+    def get_adapter(self, robot_id: str) -> FleetAdapter | None:
+        return self._adapters_by_robot_id.get(robot_id)
+
     def _authenticate_adapter(self, robot_id: str, token: str | None) -> None:
         assert self._identity is not None  # only called when configured
 
