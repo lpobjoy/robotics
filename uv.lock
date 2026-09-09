@@ -1362,12 +1362,15 @@ name = "mcp-server"
 version = "0.1.0"
 source = { editable = "mcp_server" }
 dependencies = [
+    { name = "audit" },
     { name = "eam" },
+    { name = "fastapi" },
     { name = "httpx" },
     { name = "mcp" },
     { name = "networkx" },
     { name = "pydantic" },
     { name = "router" },
+    { name = "uvicorn" },
     { name = "worldmodel" },
 ]
 
@@ -1375,17 +1378,19 @@ dependencies = [
 dev = [
     { name = "anyio" },
     { name = "pydantic-ai" },
-    { name = "uvicorn" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "audit", editable = "audit" },
     { name = "eam", editable = "eam" },
+    { name = "fastapi", specifier = ">=0.115" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "mcp", specifier = ">=1.0" },
     { name = "networkx", specifier = ">=3.3" },
     { name = "pydantic", specifier = ">=2" },
     { name = "router", editable = "router" },
+    { name = "uvicorn", specifier = ">=0.30" },
     { name = "worldmodel", editable = "worldmodel" },
 ]
 
@@ -1393,7 +1398,6 @@ requires-dist = [
 dev = [
     { name = "anyio" },
     { name = "pydantic-ai" },
-    { name = "uvicorn", specifier = ">=0.30" },
 ]
 
 [[package]]

@@ -149,3 +149,15 @@ def test_pause_resume_abort_go_through_audit_before_the_adapter() -> None:
     router.abort(mission.id)
     assert router.status(mission.id).status == MissionStatus.ABORTED
     assert any(e.action == "mission.abort" for e in audit.events)
+
+
+def test_mission_id_is_findable_by_work_order_id_after_dispatch() -> None:
+    router = Router(_graph())
+    fake = FakeAdapter("amr-01", "amr-01", "vda5050_amr", [MissionType.INSPECT_VISUAL], 1)
+    router.register_adapter(fake)
+
+    mission = _mission(work_order_id=42)
+    router.dispatch(mission)
+
+    assert router.get_mission_id_for_work_order(42) == mission.id
+    assert router.get_mission_id_for_work_order(99999) is None

@@ -11,6 +11,8 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import networkx as nx
+from audit.models import AuditEvent
+from audit.sqlite_sink import SqliteAuditSink
 from eam.models import WorkOrderStatus
 from router.fake_adapter import FakeAdapter
 from router.models import Mission, MissionHandle, MissionStatusReport, MissionType
@@ -31,10 +33,12 @@ class MissionTools:
         eam: EamGateway,
         graph_provider: Callable[[], nx.DiGraph],
         router: Router,
+        audit_sink: SqliteAuditSink,
     ) -> None:
         self._eam = eam
         self._graph_provider = graph_provider
         self._router = router
+        self._audit_sink = audit_sink
 
     @property
     def router(self) -> Router:
@@ -42,6 +46,12 @@ class MissionTools:
         a specific FakeAdapter to force a status change) -- not an MCP
         tool itself."""
         return self._router
+
+    @property
+    def audit(self) -> SqliteAuditSink:
+        """Exposed for the console's audit trail (http_api.py) -- not an
+        MCP tool itself."""
+        return self._audit_sink
 
     def list_released_work_orders(self) -> list[WorkOrder]:
         return self._eam.list_work_orders(status=WorkOrderStatus.RELEASED.value)
@@ -94,6 +104,32 @@ class MissionTools:
 
     def abort_mission(self, mission_id: str) -> None:
         self._router.abort(mission_id)
+
+    def approve_escalation(self, work_order_id: int) -> WorkOrder:
+        """The console's escalation-queue "approve" button (CLAUDE.md
+        section 4.8): a human decided the mission can continue. Resumes
+        it via the router (if one is still tracked -- a mission that
+        already failed/aborted has nothing to resume) and returns the
+        work order to InProgress."""
+        mission_id = self._router.get_mission_id_for_work_order(work_order_id)
+        if mission_id is not None:
+            self._router.resume(mission_id)
+        return self._eam.set_work_order_status(work_order_id, WorkOrderStatus.IN_PROGRESS.value)
+
+    def abort_escalation(self, work_order_id: int) -> WorkOrder:
+        """The console's escalation-queue "abort" button: a human decided
+        the mission should stop. Aborts it via the router and cancels the
+        work order."""
+        mission_id = self._router.get_mission_id_for_work_order(work_order_id)
+        if mission_id is not None:
+            self._router.abort(mission_id)
+        return self._eam.set_work_order_status(work_order_id, WorkOrderStatus.CANCELLED.value)
+
+    def list_audit_events(self, limit: int = 200) -> list[AuditEvent]:
+        return self._audit_sink.list_events()[-limit:]
+
+    def list_audit_events_for_work_order(self, work_order_id: int) -> list[AuditEvent]:
+        return self._audit_sink.list_events_for_work_order(work_order_id)
 
     def advance_fake_mission(self, robot_id: str, mission_id: str, status: str) -> None:
         """Demo/test only: force a FakeAdapter-backed mission straight to

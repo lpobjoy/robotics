@@ -59,6 +59,7 @@ class Router:
         self._identity = identity
         self._adapters_by_robot_id: dict[str, FleetAdapter] = {}
         self._handles_by_mission_id: dict[str, tuple[MissionHandle, FleetAdapter]] = {}
+        self._mission_id_by_work_order_id: dict[int, str] = {}
 
     def register_adapter(self, adapter: FleetAdapter, *, token: str | None = None) -> None:
         descriptor = adapter.capabilities()
@@ -161,11 +162,18 @@ class Router:
 
         handle = chosen_adapter.dispatch(mission)
         self._handles_by_mission_id[mission.id] = (handle, chosen_adapter)
+        self._mission_id_by_work_order_id[mission.work_order_id] = mission.id
         return handle
 
     def status(self, mission_id: str) -> MissionStatusReport:
         handle, adapter = self._get(mission_id)
         return adapter.status(handle)
+
+    def get_mission_id_for_work_order(self, work_order_id: int) -> str | None:
+        """Lets a caller that only knows a work order (the console's
+        escalation queue, say) find the mission it's tracking, without
+        needing to have kept the mission_id from dispatch time itself."""
+        return self._mission_id_by_work_order_id.get(work_order_id)
 
     def pause(self, mission_id: str) -> None:
         handle, adapter = self._get(mission_id)

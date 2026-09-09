@@ -185,3 +185,63 @@ def test_advance_fake_mission_rejects_unknown_status(
 
     with pytest.raises(ValueError, match="unsupported status"):
         mission_tools.advance_fake_mission(str(best.robot_id), handle.mission_id, "in_orbit")
+
+
+def test_approve_escalation_resumes_and_marks_in_progress(
+    mission_tools: MissionTools, eam_test_client: TestClient
+) -> None:
+    work_order_id = _first_draft_work_order_id(eam_test_client)
+    _release(eam_test_client, work_order_id)
+    qualification = mission_tools.qualify_robots(work_order_id)
+    mission_tools.dispatch_mission(
+        work_order_id,
+        qualification.target_location_id,
+        list(qualification.required_capabilities),
+        requested_by="test-agent",
+    )
+    mission_tools.mark_in_progress(work_order_id)
+    mission_tools.escalate_to_human(work_order_id, reason="uncertain")
+
+    updated = mission_tools.approve_escalation(work_order_id)
+
+    assert updated.status == "InProgress"
+    assert any(e.action == "mission.resume" for e in mission_tools.list_audit_events())
+
+
+def test_abort_escalation_aborts_and_cancels(
+    mission_tools: MissionTools, eam_test_client: TestClient
+) -> None:
+    work_order_id = _first_draft_work_order_id(eam_test_client)
+    _release(eam_test_client, work_order_id)
+    qualification = mission_tools.qualify_robots(work_order_id)
+    mission_tools.dispatch_mission(
+        work_order_id,
+        qualification.target_location_id,
+        list(qualification.required_capabilities),
+        requested_by="test-agent",
+    )
+    mission_tools.mark_in_progress(work_order_id)
+    mission_tools.escalate_to_human(work_order_id, reason="uncertain")
+
+    updated = mission_tools.abort_escalation(work_order_id)
+
+    assert updated.status == "Cancelled"
+    assert any(e.action == "mission.abort" for e in mission_tools.list_audit_events())
+
+
+def test_list_audit_events_for_work_order_is_scoped(
+    mission_tools: MissionTools, eam_test_client: TestClient
+) -> None:
+    work_order_id = _first_draft_work_order_id(eam_test_client)
+    _release(eam_test_client, work_order_id)
+    qualification = mission_tools.qualify_robots(work_order_id)
+    mission_tools.dispatch_mission(
+        work_order_id,
+        qualification.target_location_id,
+        list(qualification.required_capabilities),
+        requested_by="test-agent",
+    )
+
+    events = mission_tools.list_audit_events_for_work_order(work_order_id)
+    assert len(events) >= 1
+    assert all(e.work_order_id == work_order_id for e in events)

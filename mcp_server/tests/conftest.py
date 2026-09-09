@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import networkx as nx
 import pytest
+from audit.sqlite_sink import SqliteAuditSink
 from eam.app import create_app
 from fastapi.testclient import TestClient
 from mcp_server.eam_gateway import EamGateway
@@ -34,7 +35,8 @@ def mission_tools(eam_test_client: TestClient) -> MissionTools:
         robots=[],
         work_orders=[],
     )
-    router = Router(topology_graph)
+    audit_sink = SqliteAuditSink(":memory:")
+    router = Router(topology_graph, audit_sink=audit_sink)
     for robot in eam_client.list_robots():
         router.register_adapter(
             FakeAdapter(
@@ -46,4 +48,4 @@ def mission_tools(eam_test_client: TestClient) -> MissionTools:
             )
         )
 
-    return MissionTools(eam_gateway, graph_provider, router)
+    return MissionTools(eam_gateway, graph_provider, router, audit_sink)

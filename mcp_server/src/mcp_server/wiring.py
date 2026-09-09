@@ -9,6 +9,7 @@ before a real robot exists. See mcp_server/README.md.
 from __future__ import annotations
 
 import networkx as nx
+from audit.sqlite_sink import SqliteAuditSink
 from router.fake_adapter import FakeAdapter
 from router.models import MissionType
 from router.router import Router
@@ -19,9 +20,10 @@ from mcp_server.eam_gateway import EamGateway
 from mcp_server.tools import MissionTools
 
 
-def build_mission_tools(eam_base_url: str) -> MissionTools:
+def build_mission_tools(eam_base_url: str, audit_db_path: str = ":memory:") -> MissionTools:
     eam_gateway = EamGateway(eam_base_url)
     eam_client = EamClient(eam_base_url)
+    audit_sink = SqliteAuditSink(audit_db_path)
 
     def graph_provider() -> nx.DiGraph:
         # Rebuilt on every call: qualify_robots needs to see work orders
@@ -38,7 +40,7 @@ def build_mission_tools(eam_base_url: str) -> MissionTools:
         robots=[],
         work_orders=[],
     )
-    router = Router(topology_graph)
+    router = Router(topology_graph, audit_sink=audit_sink)
 
     for robot in eam_client.list_robots():
         router.register_adapter(
@@ -51,4 +53,4 @@ def build_mission_tools(eam_base_url: str) -> MissionTools:
             )
         )
 
-    return MissionTools(eam_gateway, graph_provider, router)
+    return MissionTools(eam_gateway, graph_provider, router, audit_sink)
