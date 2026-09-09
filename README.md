@@ -14,12 +14,14 @@ order this repo follows.
 
 ## Status
 
-Step 13 of 15 (k3d deployment) — see CLAUDE.md section 6. `eam`,
+All 15 build-sequence steps (CLAUDE.md section 6) are done. `eam`,
 `mcp_server`, `telemetry`, and `console` run together end to end via
 `docker compose` or on a local k3d cluster; `agent` runs as a manual CLI
 trigger against them. Each component directory has its own `README.md`
 stating what it does and which step built it; `docs/decisions/` has an
-ADR for every non-obvious choice along the way.
+ADR for every non-obvious choice along the way. The requirements table
+below is the honest summary of what that adds up to against the actual
+job spec.
 
 ## Layout
 
@@ -73,6 +75,84 @@ cluster instead.
 
 ## Requirements table
 
-Not started yet. This section will map every line of the target job spec
-(`docs/job-spec.md`, not yet added) to what this repo demonstrates, in the
-format fixed in CLAUDE.md section 8. Due at build-sequence step 15.
+Every line of `docs/job-spec.md`'s "What you will do" and "Technical
+depth expected" sections (CLAUDE.md section 8's format). The "Job spec
+requirement" column paraphrases; `docs/job-spec.md` has the verbatim
+text. One row can only carry one status, so where a single bullet
+bundles something built with something not, the strongest true claim
+is the status and the gap is named in "Not covered" — never softened
+away.
+
+### What you will do
+
+| Job spec requirement | Demonstrated by | Status | Not covered |
+|---|---|---|---|
+| Own the agent-first integration architecture, reference design to production | The whole repo; `docs/architecture.md`'s four layers | Built and run in sim | Production deployment, real scale, real IFS suite (`eam/` is a mock) |
+| Build the abstraction layer treating heterogeneous fleets as dispatchable, auditable executors | `router/` (`FleetAdapter` protocol, capability/availability/distance selection), `audit/` (append-only, audits before every command) | Built and run in sim | More than three ecosystems; production traffic volume |
+| Deliver working integrations hands-on: dispatch, mission/task orchestration, telemetry into asset/service records | `agent/` + `mcp_server/` (dispatch, supervise), `telemetry/` (MQTT ingestion → EAM attachments) | Built and run in sim | Real OEM hardware; a real ERP/EAM/FSM system on the receiving end |
+| Evaluate OEM platforms on engineering merit; kill weak options early | ADR-005 (ROS 2/Gazebo feasibility investigation, stopped short of full Nav2 on purpose, given the time budget); the three adapters' differing status labels are themselves a merit call per ecosystem | Built and run in sim | A formal multi-vendor bake-off; no real commercial/licensing evaluation |
+| Represent IFS in technical engagements with OEMs, foundation model providers, standards bodies | — | No direct experience | Nothing in this repo involves an external partner organization |
+| Hire and lead a robotics integration engineering team | — | No direct experience | Built solo |
+| Ship demonstrable outcomes on real customer scenarios and flagship events, on hard dates | This repo itself: built and shipped end to end for this application, in commits, on a defined build sequence | Built and run in sim | No real customer scenario; the only "hard date" was self-imposed |
+| Brief executives and customers on the robotics roadmap in commercial terms | The 3-minute recording script below frames this repo for a non-engineering audience | Described, not built | No commercial/roadmap framing exercised against a real stakeholder |
+
+### Technical depth expected
+
+| Job spec requirement | Demonstrated by | Status | Not covered |
+|---|---|---|---|
+| OEM platforms/SDKs: Boston Dynamics, Agility, Unitree, ANYbotics or comparable; mission APIs, fleet managers, autonomy, payload/data interfaces | `adapters/spot` (real `bosdyn-client`, `GraphNavClient`), `adapters/unitree` (real `unitree_sdk2py`, DDS RPC to a real `SportClient`) | Built against SDK, tested with fake | Agility Robotics, ANYbotics, or any OEM SDK — no direct exposure; no real hardware for Spot or Unitree; no public simulator exists for either, so "tested with fake" is the ceiling, not a shortcut (see each adapter's README) |
+| Robotics middleware/interoperability: ROS 2 (topics/services/actions/DDS) at integration level; VDA 5050, MassRobotics, Open-RMF — where they work and fall short | `adapters/vda5050_amr/ros2_bridge` (real ROS 2 Jazzy node, Gazebo Harmonic, TurtleBot4); `docs/standards.md` written from that experience | Built and run in sim | Nav2 actually driving to a goal through the bridge node, not yet verified end to end (ADR-005); Open-RMF and MassRobotics are read and analyzed, not built against |
+| Agent-first integration: agents that plan/dispatch/supervise; MCP servers and tool interfaces; orchestration frameworks; permissioning, human-in-the-loop escalation, audit trails | `agent/` (Pydantic AI, two-phase dispatch/supervise, resume-after-restart); `mcp_server/` (official MCP SDK, 11 tools); `identity/` (permissioning); escalation + human resume/abort proven under a real dropped MQTT link (`adapters/vda5050_amr/tests/test_degraded_mode.py`) | Built and run in sim | LangGraph specifically not used (Pydantic AI chosen instead — ADR-002); no live Anthropic API key in this environment, so the model call itself is verified structurally (real request reaches Anthropic, real 401 on a dummy key) rather than with a live response |
+| Robotics foundation models: VLA/omni model awareness (e.g. SkildAI, Physical Intelligence, Nvidia GR00T) and what changes over 2-3 years | `docs/foundation-models.md` | Described, not built | No VLA/omni model integrated, prototyped, or run anywhere in this repo |
+| Industrial data/telemetry: MQTT, OPC UA, event-driven ingestion, time-series at fleet scale | `telemetry/` (real MQTT ingestion, sqlite time-series store, image attachment to the EAM) | Built and run in sim | OPC UA (`DESCRIBED_NOT_BUILT`, CLAUDE.md section 4.6); fleet-scale data volume — this repo runs three robots, not a fleet |
+| Simulation and validation: Isaac Sim, Gazebo, or OEM-native simulators, to validate without waiting on hardware | `adapters/vda5050_amr/ros2_bridge` (Gazebo Harmonic + TurtleBot4, headless-boot proven — ADR-005) | Built and run in sim | Isaac Sim not used (Gazebo chosen — ADR-001); `unitree_mujoco` (Unitree's own simulator, Half B) not started; full Nav2 loop not yet verified |
+| Enterprise integration: REST/OData/GraphQL/webhooks into ERP/EAM/FSM; mapping missions onto work orders, assets, service processes | `eam/` (OData v4 + REST + webhook), `worldmodel/` (the actual work-order → asset → capability → robot mapping) | Built and run in sim | GraphQL not implemented (OData + REST only); a real ERP/EAM/FSM (SAP, Maximo, IFS itself) — `eam/` is a clean-room mock |
+| Languages/platform: expert Python and TypeScript; read C++ where SDKs demand it; production Kubernetes, CI/CD, edge deployment | Python throughout; `console/` (TypeScript); `deploy/k3d/` (a real k3d cluster stood up and verified — five Deployments Ready, port-forwarded, smoke-tested); `.github/workflows/ci.yml` | Built and run in sim | No C++ — both SDKs used here (`unitree_sdk2py`, `bosdyn-client`) are Python-native, so no C++ reading was actually required; "production" Kubernetes means a real multi-node, production-traffic cluster, which this one-node local demo cluster is not |
+| Security/safety posture: identity and authorization for machine actors; OT network segmentation; audit and traceability | `identity/` (client-credentials-shaped tokens, tested against a tampered token); `router/`'s `register_adapter` identity check; `audit/` (literally append-only); `docs/security.md` | Built and run in sim | OT network segmentation (`DESCRIBED_NOT_BUILT`, `docs/security.md`); no TLS/mTLS anywhere in this repo — everything runs on loopback or a local Docker network |
+
+## Recording script (3 minutes)
+
+A walkthrough script for a live or recorded demo, timed to CLAUDE.md
+section 9's definition of done.
+
+**0:00–0:20 — What this is.** "This is `robot-router`: a demo of an
+agent-first integration between a business system and a heterogeneous
+robot fleet. A work order gets released, an AI agent turns it into a
+mission, a router picks whichever robot can do it, the robot executes
+in simulation, and everything — every decision, every command — gets
+audited. Built solo, on a laptop, over a few weeks. Not a product, not
+run on real hardware, and I'll say so again anywhere it matters."
+
+**0:20–1:10 — The happy path, live.** Open the console. Point at the
+work order list ("this is a mock EAM — OData and REST, the same
+dialect a real ERP suite exposes"). Release "Visual inspect Pump P-101
+for leaks." Run the agent CLI against it. While it runs: "the agent
+resolves this against a world-model graph — which robots have the
+right capability, which is idle, which is closest — dispatches to the
+cheapest match, and supervises it to completion." Switch to the audit
+trail: "every one of those decisions is right here, append-only,
+before the robot was ever called."
+
+**1:10–2:00 — The part that actually proves something.** "Here's a
+real robot adapter — VDA 5050 over MQTT, a real broker, a real ROS 2 +
+Gazebo simulation underneath." (Show the sim boot, or the recorded
+clip if live boot is too slow for the format.) "And here's the
+degraded-mode scenario: I cut the MQTT link mid-mission —" (kill the
+connection) "— the adapter detects it within its timeout, the mission
+gets marked failed, the agent escalates, and it sits here waiting for
+a human." Approve or abort it in the console. "That loop, cut link to
+human decision, is fully tested against a real broker, not mocked."
+
+**2:00–2:40 — What's honestly not there.** "Two of the three adapters
+— Unitree and Spot — are built against the real vendor SDKs and tested
+against a real fake of the onboard service, because neither vendor
+ships a simulator this laptop can run their high-level API against.
+Said plainly in each adapter's README, not glossed over. Same for
+Nav2: it boots, it doesn't yet drive to a goal end to end. The
+requirements table above has the complete, honest list — no keyword
+without a receipt."
+
+**2:40–3:00 — Close.** "The point isn't that this is production
+software — it isn't. It's that every piece of it, from the MCP tool
+calls to the audit log to the degraded-mode escalation, is something I
+built and can defend line by line, right now, in this room."
