@@ -22,7 +22,7 @@ from telemetry.topics import EVENTS_WILDCARD, IMAGES_WILDCARD, STATE_WILDCARD
 logger = logging.getLogger(__name__)
 
 
-def _subscribe_and_wait(client: mqtt.Client, topic: str, timeout: float = 5.0) -> None:
+def _subscribe_and_wait(client: mqtt.Client, topic: str, timeout: float = 15.0) -> None:
     """Subscribe and block until the broker SUBACKs it.
 
     paho's subscribe() returns as soon as the SUBSCRIBE packet is queued,

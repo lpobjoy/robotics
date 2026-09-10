@@ -46,7 +46,7 @@ from vda5050_amr.topics import Vda5050Topics
 LocationLookup = Callable[[int], tuple[float, float]]
 
 
-def _subscribe_and_wait(client: mqtt.Client, topic: str, timeout: float = 5.0) -> None:
+def _subscribe_and_wait(client: mqtt.Client, topic: str, timeout: float = 15.0) -> None:
     """Subscribe and block until the broker SUBACKs it.
 
     paho's subscribe() returns as soon as the SUBSCRIBE packet is queued,
